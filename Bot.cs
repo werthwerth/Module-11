@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Hosting;
+using Microsoft.VisualBasic;
 using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
@@ -7,6 +8,7 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace VoiceTexterBot
 {
@@ -34,18 +36,35 @@ namespace VoiceTexterBot
 
         async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            if (update.Message != null)
+            if (update.Type == UpdateType.CallbackQuery)
             {
-                //  Обрабатываем нажатия на кнопки  из Telegram Bot API: https://core.telegram.org/bots/api#callbackquery
-                if (update.Message.Text == "/numbers")
+                if (update.CallbackQuery.Data == "numbers")
                 {
                     _curentMode = 1;
-                    await _telegramClient.SendTextMessageAsync(update.Message.Chat.Id, "You chose Numbers mode", cancellationToken: cancellationToken);
+                    await _telegramClient.SendTextMessageAsync(update.CallbackQuery.From.Id, "You chose Numbers mode", cancellationToken: cancellationToken);
                 }
-                else if (update.Message.Text == "/symbols")
+                else if (update.CallbackQuery.Data == "symbols")
                 {
                     _curentMode = 2;
-                    await _telegramClient.SendTextMessageAsync(update.Message.Chat.Id, "You chose String mode", cancellationToken: cancellationToken);
+                    await _telegramClient.SendTextMessageAsync(update.CallbackQuery.From.Id, "You chose String mode", cancellationToken: cancellationToken);
+                }
+                return;
+            }
+            else if (update.Type == UpdateType.Message)
+            {
+                //  Обрабатываем нажатия на кнопки  из Telegram Bot API: https://core.telegram.org/bots/api#callbackquery
+                if (update.Message.Text == "/start")
+                {
+                    _curentMode = 0;
+                    var buttons = new List<InlineKeyboardButton[]>();
+                    buttons.Add(new[]
+                    {
+                        InlineKeyboardButton.WithCallbackData($" Numbers" , $"numbers"),
+                        InlineKeyboardButton.WithCallbackData($" Symbols" , $"symbols")
+                    });
+
+                    // передаем кнопки вместе с сообщением (параметр ReplyMarkup)
+                    await _telegramClient.SendTextMessageAsync(update.Message.Chat.Id, "Hey !", cancellationToken: cancellationToken, replyMarkup: new InlineKeyboardMarkup(buttons));
                 }
                 else
                 {
